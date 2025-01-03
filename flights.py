@@ -54,7 +54,7 @@ class DataLoader(object):
             [-self.thruster[:, 2] * 0.707, self.thruster[:, 2] * 0.707], axis=-1
         )
         thruster_3 = np.stack(
-            [-self.thruster[:, 2] * 0.707, -self.thruster[:, 2] * 0.707], axis=-1
+            [-self.thruster[:, 3] * 0.707, -self.thruster[:, 3] * 0.707], axis=-1
         )
 
         self.F_p = np.dot(self.thruster, self.uuv.r_f)

@@ -1,4 +1,3 @@
-import time
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -112,8 +111,15 @@ mass = 11.2
 rho = 10**3
 L = 0.448
 J_z = 0.2 * mass * 0.448**2 + 0.2 * mass * 0.2384**2
+N = 200
 
-hydro_coff_true = np.array([-1.7182, 0, -0.4006, -11.7391, 0, -20, 0, -5, 0])
+hydro_coff = np.array([-1.7182, 0, -0.4006, -11.7391, 0, -20, 0, -5, 0])  # true
+
+hydro_coff = np.array(
+[-1.98595247e+00, -1.08000000e+00, -6.74183771e-01, -7.99131866e+00,
+ -1.98990000e+01 ,-2.00878976e+01,  7.75762734e-49, -5.02667415e+00,
+ -1.66855312e-05]
+)
 
 
 def fitness_function(
@@ -200,10 +206,10 @@ def forward(hydro_coff):  # 单个粒子中依据动力学方程预测速度
         v_0 = v_next
         r_0 = r_next
 
-        u_pred.append(u_next)
-        v_pred.append(v_next)
-        r_pred.append(r_next)
-        r_acc.append(r_acc_pred)
+        u_pred.append(u_acc_pred)
+        v_pred.append(v_acc_pred)
+        r_pred.append(r_acc_pred)
+        # r_acc.append(r_acc_pred)
 
     u_pred = np.array(u_pred)
     v_pred = np.array(v_pred)
@@ -211,159 +217,26 @@ def forward(hydro_coff):  # 单个粒子中依据动力学方程预测速度
     r_acc = np.array(r_acc)
 
     return u_pred, v_pred, r_pred
-N = 200
-
-hydro_coff = np.array(
-    [
-   -3.17,
-   -0.36,
-   -0.572,
-   -10.495,
-   -6.633,
-   -18.7589,
-   -7.7811,
-   -4.49,
-   -1.90,
-    ]
-)
-k = 2
-vel_scale = 0.2
-vel_weight = 0.3
-par_pos = []  # 粒子位置
-par_vel = []  # 粒子速度
-par_pbest = []
-par_best_fitness = []
-# 初始化
-
-X_max = hydro_coff + k * np.abs(hydro_coff)
-X_min = hydro_coff - k * np.abs(hydro_coff)
-V_max = vel_scale * np.abs(hydro_coff)
-V_min = -vel_scale * np.abs(hydro_coff)
-
-for i in range(N):
-    x_0 = np.random.rand(len(hydro_coff)) * (2 * k * np.abs(hydro_coff)) + (
-        hydro_coff - k * np.abs(hydro_coff)
-    )  # 按照水动力系数允许的估计范围随机取粒子初始位置
-    x_0 = np.random.rand(len(hydro_coff)) * (X_max - X_min) + X_min
-    v_0 = np.random.rand(len(hydro_coff)) * (V_max - V_min) + V_min
-    fitness_0 = 100000
-    par_pos.append(x_0)  # 记录每个粒子的位置
-    par_vel.append(v_0)  # 记录每个粒子的速度
-    par_pbest.append(x_0)
-    par_best_fitness.append(fitness_0)
-
-gbest_fitness = par_best_fitness[np.argmin(np.abs(np.array(par_best_fitness)))]
-gbest_fitness_list = [gbest_fitness]
 
 
-c_1 = 2
-c_2 = 3
-epoch = 10000
+u_pred, v_pred, r_pred = forward(hydro_coff)
+current_fitness = fitness_function(u, v, r, u_pred, v_pred, r_pred)
 
 
-def fitness_function(
-    u: np.ndarray,
-    v: np.ndarray,
-    r: np.ndarray,
-    u_pred: np.ndarray,
-    v_pred: np.ndarray,
-    r_pred: np.ndarray,
-):
-    return np.sum(
-        np.abs((u - u_pred) / (u + 1e-6))
-        + np.abs((v - v_pred) / (v + 1e-6))
-        + np.abs((r - r_pred) / (r + 1e-6))
-    )
-
-
-
-
-for i in range(epoch):
-    start = time.time()
-    for j in range(N):
-
-        par_pos_j = par_pos[j]
-        par_vel_j = par_vel[j]
-
-        u_pred, v_pred, r_pred = forward(par_pos_j)
-
-        current_fitness = fitness_function(u, v, r, u_pred, v_pred, r_pred)
-
-        if np.abs(current_fitness) < np.abs(
-            par_best_fitness[j]
-        ):  # 如果到了目前最好的适应度位置
-            par_best_fitness[j] = current_fitness
-            par_pbest[j] = par_pos_j  # 更新目前个体最好的位置
-        minind = np.argmin(np.abs(np.array(par_best_fitness)))
-        gbest_fitness = par_best_fitness[minind]  # 更新全局最优适合度
-        gbest_pos = par_pbest[minind]  # 更新全局最优位置
-
-        if gbest_fitness != gbest_fitness_list[-1]:
-            # plt.figure(2)
-            # plt.subplot(3, 1, 1)
-            # plt.title(f"the {i} epoch, the {minind} partical, the fit: {gbest_fitness}")
-            # plt.plot(timestamps, u, "b--", label="truth")
-            # plt.plot(timestamps, u_pred, "r-", label="prediction")
-            # plt.ylabel("u")
-            # plt.subplot(3, 1, 2)
-            # plt.plot(timestamps, v, "b--", label="truth")
-            # plt.plot(timestamps, v_pred, "r-", label="prediction")
-            # plt.ylabel("v")
-            # plt.subplot(3, 1, 3)
-            # plt.plot(timestamps, r, "b--", label="truth")
-            # plt.plot(timestamps, r_pred, "r-", label="prediction")
-            # plt.ylabel("r")
-            # plt.xlabel("t")
-
-            # plt.legend()
-            # plt.show()
-            print(gbest_pos)
-
-        gbest_fitness_list.append(gbest_fitness)
-        delta_v = c_1 * np.random.rand(len(hydro_coff)) * (
-            par_pbest[j] - par_pos_j
-        ) + c_2 * np.random.rand(len(hydro_coff)) * (gbest_pos - par_pos_j)
-        delta_v = np.clip(
-            delta_v, -vel_scale * np.abs(par_pos_j), vel_scale * np.abs(par_pos_j)
-        )
-
-        par_vel_j = vel_weight * par_vel_j + delta_v
-        par_pos_j += par_vel_j
-        par_pos_j = np.clip(
-            par_pos_j,
-            hydro_coff - k * np.abs(hydro_coff),
-            hydro_coff + k * np.abs(hydro_coff),
-        )
-
-        par_pos[j] = par_pos_j
-        par_vel[j] = par_vel_j
-
-    print(
-        f"epoch {i+1}: the global best fitness is {gbest_fitness}, time:{time.time()-start}"
-    )
-
-
-gbest_fitness_list = np.array(gbest_fitness_list)
-
-print(f"the best global hydro coff: {gbest_pos}")
-
-plt.figure(1)
-plt.plot(gbest_fitness_list, label="global best fitness")
-
-# u_pred, v_pred, r_pred = pred_vel(gbest_pos)
-# plt.figure(2)
-# plt.subplot(3, 1, 1)
-# plt.plot(timestamps, u, "b--", label="truth")
-# plt.plot(timestamps, u_pred, "r-", label="prediction")
-# plt.ylabel("u")
-# plt.subplot(3, 1, 2)
-# plt.plot(timestamps, v, "b--", label="truth")
-# plt.plot(timestamps, v_pred, "r-", label="prediction")
-# plt.ylabel("v")
-# plt.subplot(3, 1, 3)
-# plt.plot(timestamps, r, "b--", label="truth")
-# plt.plot(timestamps, r_pred, "r-", label="prediction")
-# plt.ylabel("r")
-# plt.xlabel("t")
-# plt.legend()
-# plt.show()
+plt.figure(2)
+plt.subplot(3, 1, 1)
+plt.title("pso fitness %.3f" % (current_fitness))
+plt.plot(timestamps, u_acc, "b--", label="truth")
+plt.plot(timestamps, u_pred, "r-", label="prediction")
+plt.ylabel("u")
+plt.subplot(3, 1, 2)
+plt.plot(timestamps, v_acc, "b--", label="truth")
+plt.plot(timestamps, v_pred, "r-", label="prediction")
+plt.ylabel("v")
+plt.subplot(3, 1, 3)
+plt.plot(timestamps, r_acc, "b--", label="truth")
+plt.plot(timestamps, r_pred, "r-", label="prediction")
+plt.ylabel("r")
+plt.xlabel("t")
+plt.legend()
+plt.show()
