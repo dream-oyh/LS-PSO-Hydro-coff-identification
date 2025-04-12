@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.spatial.transform import Rotation as R
-
+import os
+import datetime
 from calculate import calculate_forces_and_torques
 
 pose_dir = "3d_data/pose_data_3d.csv"
@@ -95,8 +96,8 @@ angular_acc = np.diff(angular_vel, axis=0) / np.diff(timestamps)[:, np.newaxis]
 # 对齐时间数据
 linear_vel_true = linear_vel[:-1, :]
 angular_vel_true = angular_vel[:-1, :]
-linear_vel = linear_vel_true + np.random.normal(0, 0.01)
-angular_vel = angular_vel_true + np.random.normal(0, 0.01)
+linear_vel = linear_vel_true + np.random.normal(0, 0.05)
+angular_vel = angular_vel_true + np.random.normal(0, 0.05)
 
 timestamps = timestamps[:-1]
 
@@ -288,22 +289,54 @@ hydro_coff = np.array(
     ]
 )
 
-u_pred, v_pred, r_pred = forward(hydro_coff_true)
+u_pred, v_pred, r_pred = forward(hydro_coff)
 fitness = fitness_function(u, v, r, u_pred, v_pred, r_pred)
 plt.figure()
-plt.title(f"the estimation error of LS is {fitness}")
-plt.subplot(3, 1, 1)
+plt.subplot(3, 2, 1)
 plt.plot(timestamps, linear_vel_true[:, 0], "b--", label="truth")
 plt.plot(timestamps, u_pred, "r-", label="prediction")
 plt.ylabel("u")
-plt.subplot(3, 1, 2)
+plt.subplot(3, 2, 2)
+plt.plot(timestamps, linear_vel_true[:, 0]-u_pred, "r-", label="error")
+plt.ylabel("u_error")
+plt.subplot(3, 2, 3)
 plt.plot(timestamps, linear_vel_true[:, 1], "b--", label="truth")
 plt.plot(timestamps, v_pred, "r-", label="prediction")
 plt.ylabel("v")
-plt.subplot(3, 1, 3)
+plt.subplot(3, 2, 4)
+plt.plot(timestamps, linear_vel_true[:, 1]-v_pred, "r-", label="error")
+plt.ylabel("v_error")
+plt.subplot(3, 2, 5)
 plt.plot(timestamps, angular_vel_true[:, 2], "b--", label="truth")
 plt.plot(timestamps, r_pred, "r-", label="prediction")
 plt.ylabel("r")
+plt.subplot(3, 2, 6)
+plt.plot(timestamps, linear_vel_true[:, 2]-r_pred, "r-", label="error")
+plt.ylabel("r_error")
 plt.xlabel("t")
 plt.legend()
 plt.show()
+
+
+output_result_file = "results/identify_results.md"
+
+os.makedirs(os.path.dirname(output_result_file), exist_ok=True)
+with open(output_result_file, "w", encoding="utf-8") as f:
+    result = f"""
+# {datetime.date.today()} identify results
+
+identified by least square method
+
+|参数 | 预测值 | 真实值 |
+|:---:|:---:|:---:|
+|X_udot|{hydro_coff[0]:.4f}|{hydro_coff_true[0]}|
+|Y_vdot|{hydro_coff[1]:.4f}|{hydro_coff_true[1]}|
+|N_rdot|{hydro_coff[2]:.4f}|{hydro_coff_true[2]}|
+|X_u|{hydro_coff[3]:.4f}|{hydro_coff_true[3]}|
+|Y_v|{hydro_coff[4]:.4f}|{hydro_coff_true[4]}|
+|N_r|{hydro_coff[5]:.4f}|{hydro_coff_true[5]}|
+|X_uu|{hydro_coff[6]:.4f}|{hydro_coff_true[6]}|
+|Y_vv|{hydro_coff[7]:.4f}|{hydro_coff_true[7]}|
+|N_rr|{hydro_coff[8]:.4f}|{hydro_coff_true[8]}|
+"""
+    f.write(result)
